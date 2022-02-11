@@ -12,6 +12,12 @@ int main()
   {
 	  std::cout << output << '\n';
   }
-  std::cout << "hello android\n";
+  getheader();
+  auto key {getNextKey(fs)};
+  while (key)
+  {
+    
+
+  }
   return 0;
 }
