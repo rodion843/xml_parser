@@ -93,28 +93,26 @@ void printTags(auto &fs,
     }
   }
 }
-static std::string static_array(1024*32, '\0');
+static std::string static_string(1024 * 32, '\0');
 int main()
 {
   try{
        std::string path {"./sample.xml"};
        std::fstream fs(path);
        if(!fs.is_open()) std::cerr << "could not open file " << path;
-       auto pos = 0ul;
-       while(fs.getline(&static_array[pos], static_array.size()))
-       {
-          pos += fs.gcount();
-       }
-       std::remove_if(static_array.begin(), static_array.begin() + pos, [](auto c){return (c == ' ') || (c == '\0');});
-//       whatInside(fs);
-//       std::string buf(64, '\0');
-//       printTags(fs, buf);
+
+       std::stringstream ss;
+       ss << fs.rdbuf();
+       static_string = ss.str();
+       static_string.erase(std::remove_if(static_string.begin(), static_string.end(), 
+                      [&](auto c){return (std::isspace(c) || (c == '\0'));}), 
+                      static_string.end());
        auto count = 0ul;
-       for(const auto &c : static_array)
+       for(const auto &c : static_string)
        {
           std::cout << c;
           ++count;
-          if (c=='\0') break;
+          if (c == '\0') break;
        }
        std::cout << "chars used: " << count;
   }
