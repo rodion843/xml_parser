@@ -4,6 +4,7 @@
 #include <fstream>
 #include <array>
 #include <set>
+#include <vector>
 //<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 
 struct xml_header
@@ -12,7 +13,37 @@ struct xml_header
   std::string encoding;
   bool standalone;
 };
+struct tag
+{
+  std::string name;
+  std::string value;
+  tag* childs;
+};
+std::set<std::string> tags;
+auto whatInside(auto &ss)
+{
+  //std::stringstream ss{str};
+  std::string buffer(1024 * 1, '\0');
+  while(ss.get(&buffer.front(), buffer.size(), '>'))
+  {
+    printf("%s\n", buffer.c_str());
+    buffer.erase(0, buffer.find('<'));
+    auto pos = buffer.find(' ');
+    if (pos != std::string::npos)
+    {
+      printf("%s\n", buffer.c_str());
+      tags.insert(buffer.substr(1, pos));
+    }
+    else
+    {
+      printf("%s\n", buffer.c_str());
+      tags.insert(buffer.substr(1, buffer.size()));
+    }
+    //std::cout << buffer << '\n';
+    ss.ignore(1);
+  }
 
+}
 auto parseHeader(auto &ss)
 {
   char dump[100];
@@ -38,7 +69,6 @@ auto parseHeader(auto &ss)
             << "\nstandalonei: " << hdr.standalone; 
   std::cout << "\n";
 }
-std::set<std::string> tags;
 void printTags(auto &fs, 
                std::string &str, 
                bool firstTime = true)
@@ -65,10 +95,18 @@ void printTags(auto &fs,
 }
 int main()
 {
+  try{
   std::string path {"./sample.xml"};
   std::fstream fs(path);
   if(!fs.is_open()) std::cerr << "could not open file " << path;
-  std::string buf(64, '\0');
-  printTags(fs, buf);
+  whatInside(fs);
+//  std::string buf(64, '\0');
+//  printTags(fs, buf);
+  for(const auto &tag : tags) std::cout << tag << '\n';
+  }
+  catch(const std::exception &e)
+  {
+    std::cout << "Unhandled exception in main: " << e.what();
+  }
   return 0;
 }
