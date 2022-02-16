@@ -104,9 +104,11 @@ int main()
        std::stringstream ss;
        ss << fs.rdbuf();
        static_string = ss.str();
-       static_string.erase(std::remove_if(static_string.begin(), static_string.end(), 
-                      [&](auto c){return (std::isspace(c) || (c == '\0'));}), 
-                      static_string.end());
+       static_string.erase(
+         std::remove_if(static_string.begin(),
+         static_string.end(), 
+         [&](auto c){return (std::isspace(c) || (c == '\0'));})
+         static_string.end());
        auto count = 0ul;
        for(const auto &c : static_string)
        {
