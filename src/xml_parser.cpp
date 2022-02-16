@@ -93,6 +93,13 @@ void printTags(auto &fs,
     }
   }
 }
+void Parse(auto ss)
+{
+  //find tag
+  //check if it in global var
+  //add it to gloval var
+  //Parse()
+}
 static std::string static_string(1024 * 32, '\0');
 int main()
 {
