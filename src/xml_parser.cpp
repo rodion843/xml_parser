@@ -16,9 +16,11 @@ struct xml_header
 struct tag
 {
   std::string name;
+  std::set<std::string> param;  //map in fututre
   std::string value;
   tag* childs;
 };
+std::vector<tag> vt;
 std::set<std::string> tags;
 auto whatInside(auto &ss)
 {
@@ -60,14 +62,10 @@ auto parseHeader(auto &ss)
   char standalone[10];
   ss.getline(standalone, 10, '\"');
 
-  xml_header hdr {{version}, 
-                  {encoding}, 
-                  std::string{standalone} == std::string{"yes"}
-                 };
-  std::cout << "version:     " << hdr.version 
-            << "\nencoding:  " << hdr.encoding 
-            << "\nstandalonei: " << hdr.standalone; 
-  std::cout << "\n";
+  return xml_header hdr {
+    {version}, 
+    {encoding}, 
+    std::string{standalone} == std::string{"yes"}};
 }
 void printTags(auto &fs, 
                std::string &str, 
@@ -93,37 +91,56 @@ void printTags(auto &fs,
     }
   }
 }
-void Parse(auto ss)
+//between open and closed tags = content
+//how to make it linear?
+void findTag(auto &ss)
 {
-  //find tag
-  //check if it in global var
-  //add it to gloval var
-  //Parse()
+  std::array<char, 1024> buf; 
+  ss.getline(&buf.front(), buf.size(), '<');
+  ss.getline(&buf.front(), buf.size(), '>');
+
+
+  for(auto i = 0l; i != ss.gcount(); ++i)
+  {
+    std::cout << buf[i];
+  }
+}
+void Parse(auto &ss)
+{
+  (void) ss;
+  //find tag recurse until content
+  //need to unroll. will be facing the same tags but closing
+  //check them? skip? 
+  //while(ss)
+  //while(!content)
+  //build node
+  //find repeating tags
+  //go to first while
 }
 static std::string static_string(1024 * 32, '\0');
 int main()
 {
   try{
-       std::string path {"./sample.xml"};
-       std::fstream fs(path);
-       if(!fs.is_open()) std::cerr << "could not open file " << path;
+    std::string path {"./sample.xml"};
+    std::fstream fs(path);
+    if(!fs.is_open()) std::cerr << "could not open file " << path;
 
-       std::stringstream ss;
-       ss << fs.rdbuf();
-       static_string = ss.str();
-       static_string.erase(
-         std::remove_if(static_string.begin(),
-         static_string.end(), 
-         [&](auto c){return (std::isspace(c) || (c == '\0'));})
-         static_string.end());
-       auto count = 0ul;
-       for(const auto &c : static_string)
-       {
-          std::cout << c;
-          ++count;
-          if (c == '\0') break;
-       }
-       std::cout << "chars used: " << count;
+    parseHeader(fs);
+    std::stringstream ss;
+    ss << fs.rdbuf();
+    static_string = ss.str();
+    static_string.erase(
+      std::remove_if(static_string.begin(),
+      static_string.end(), 
+      [&](auto c){return (std::isspace(c) || (c == '\0'));}));
+    auto count = 0ul;
+    for(const auto &c : static_string)
+    {
+       std::cout << c;
+       ++count;
+       if (c == '\0') break;
+    }
+    std::cout << "chars used: " << count;
   }
   catch(const std::exception &e)
   {
