@@ -18,7 +18,7 @@ struct tag
   std::string name;
   std::set<std::string> param;  //map in fututre
   std::string value;
-  tag* childs;
+  tag* child;
 };
 std::vector<tag> vt;
 std::set<std::string> tags;
@@ -62,7 +62,7 @@ auto parseHeader(auto &ss)
   char standalone[10];
   ss.getline(standalone, 10, '\"');
 
-  return xml_header hdr {
+  return xml_header {
     {version}, 
     {encoding}, 
     std::string{standalone} == std::string{"yes"}};
@@ -91,23 +91,33 @@ void printTags(auto &fs,
     }
   }
 }
+void PrintTag(const tag &t)
+{
+  std::cout << t.name << '\n';
+  if (t.child)
+  {
+    PrintTag(*t.child);
+  }
+}
 //between open and closed tags = content
 //how to make it linear?
-void findTag(auto &ss)
+auto findTag(auto &ss)
 {
-  std::array<char, 1024> buf; 
-  ss.getline(&buf.front(), buf.size(), '<');
-  ss.getline(&buf.front(), buf.size(), '>');
+  char buf[1024]; 
+  ss.getline(buf, 1024, '<');
+  ss.getline(buf, 1024, '>');
 
-
-  for(auto i = 0l; i != ss.gcount(); ++i)
-  {
-    std::cout << buf[i];
-  }
+  std::cout<< buf;
+  return std::string{buf};
 }
 void Parse(auto &ss)
 {
-  (void) ss;
+  tag file;
+  file.name = findTag(ss);
+  while(ss)
+  {
+    file.child = new tag {findTag(ss), {}, {}, {}};
+  }
   //find tag recurse until content
   //need to unroll. will be facing the same tags but closing
   //check them? skip? 
@@ -125,22 +135,23 @@ int main()
     std::fstream fs(path);
     if(!fs.is_open()) std::cerr << "could not open file " << path;
 
-    parseHeader(fs);
+    //parseHeader(fs);
     std::stringstream ss;
     ss << fs.rdbuf();
-    static_string = ss.str();
-    static_string.erase(
-      std::remove_if(static_string.begin(),
-      static_string.end(), 
-      [&](auto c){return (std::isspace(c) || (c == '\0'));}));
-    auto count = 0ul;
-    for(const auto &c : static_string)
-    {
-       std::cout << c;
-       ++count;
-       if (c == '\0') break;
-    }
-    std::cout << "chars used: " << count;
+    Parse(ss);
+    //static_string = ss.str();
+    //static_string.erase(
+    //  std::remove_if(static_string.begin(),
+    //  static_string.end(), 
+    //  [&](auto c){return (std::isspace(c) || (c == '\0'));}));
+    //auto count = 0ul;
+    //for(const auto &c : static_string)
+    //{
+    //   std::cout << c;
+    //   ++count;
+    //   if (c == '\0') break;
+    //}
+    //std::cout << "chars used: " << count;
   }
   catch(const std::exception &e)
   {
