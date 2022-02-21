@@ -6,19 +6,43 @@
 #include <set>
 #include <vector>
 //<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-
+static constexpr auto TAGS_CAPACITY = 32768ul;
 struct xml_header
 {
   std::string version;
   std::string encoding;
   bool standalone;
 };
+
+struct tag_name
+{
+  void add_name(const std::string& name)
+  {
+    name.copy(&tags_names[pos], name.size());
+    pos += name.size() + 1;
+    tags_names[pos++] = '\n';
+  }
+  void print_all_names()
+  {
+    for (const auto &c : tags_names)
+      std::cout << c;
+    std::cout << '\n';
+  }
+  std::array<char, TAGS_CAPACITY> tags_names {0};
+  std::size_t pos = 0;
+}tag_name;
+
 struct tag
 {
   std::string name;
   std::set<std::string> param;  //map in fututre
   std::string value;
   tag* child;
+
+  tag* getNext(const auto &name){
+    return new tag{name, {}, {}, {}};
+  }
+
 };
 std::vector<tag> vt;
 std::set<std::string> tags;
@@ -103,21 +127,29 @@ void PrintTag(const tag &t)
 //how to make it linear?
 auto findTag(auto &ss)
 {
-  char buf[1024]; 
-  ss.getline(buf, 1024, '<');
-  ss.getline(buf, 1024, '>');
-
-  std::cout<< buf;
+  //ignore header
+  //find first tag
+  //loop through all tags until you found closing bracket of the first
+  char buf[1024]{}; 
+  auto bt1 = ss.find('<');
+  auto bt2 = ss.find('>');
+  auto et1 = ss.find('<', bt1);
+  auto et2 = ss.find('>', bt2);
+  ss.copy(buf, bt2 - bt1 - 1, bt1 + 1);
+  ss.erase(bt1, bt2 - bt1);
+  ss.erase(et1, et2 - et1);
   return std::string{buf};
 }
 void Parse(auto &ss)
 {
   tag file;
-  file.name = findTag(ss);
-  while(ss)
+  //file.name = findTag(ss);
+  while(ss.size() > 50)
   {
-    file.child = new tag {findTag(ss), {}, {}, {}};
+    tag_name.add_name(findTag(ss));
+    //file.child = file.getNext(findTag(ss));
   }
+  tag_name.print_all_names();
   //find tag recurse until content
   //need to unroll. will be facing the same tags but closing
   //check them? skip? 
@@ -138,8 +170,8 @@ int main()
     //parseHeader(fs);
     std::stringstream ss;
     ss << fs.rdbuf();
-    Parse(ss);
-    //static_string = ss.str();
+    static_string = ss.str();
+    Parse(static_string);
     //static_string.erase(
     //  std::remove_if(static_string.begin(),
     //  static_string.end(), 
