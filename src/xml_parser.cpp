@@ -6,7 +6,7 @@
 #include <set>
 #include <vector>
 //<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-static constexpr auto TAGS_CAPACITY = 32768ul;
+static constexpr auto TAGS_CAPACITY = 32768ul * 32;
 struct xml_header
 {
   std::string version;
@@ -123,32 +123,70 @@ void PrintTag(const tag &t)
     PrintTag(*t.child);
   }
 }
+bool hasValue(auto &name)
+{
+  if(name.find(' ') != std::string::npos) return true;
+  else                                    return false;
+}
+void eatValue(auto &name)
+{
+  name.erase(name.find(' '), name.find('>'));
+}
 //between open and closed tags = content
 //how to make it linear?
-auto findTag(auto &ss)
+bool eatCorrespondingTag(const auto &name, auto &ss)
+{
+  auto et1 = ss.find("</" + name + ">");
+  if(et1 != std::string::npos)
+  {
+    auto et2 = ss.find('>', et1);
+    ss.erase(et1, et2 - et1 + 1);
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+auto count = 0ul;
+std::string findTag(auto &ss)
 {
   //ignore header
   //find first tag
   //loop through all tags until you found closing bracket of the first
-  char buf[1024]{}; 
-  auto bt1 = ss.find('<');
-  auto bt2 = ss.find('>');
-  auto et1 = ss.find('<', bt1);
-  auto et2 = ss.find('>', bt2);
+  char buf[32]{}; 
+  auto bt1 = ss.find('<', 0);
+  auto bt2 = ss.find('>', bt1);
   ss.copy(buf, bt2 - bt1 - 1, bt1 + 1);
-  ss.erase(bt1, bt2 - bt1);
-  ss.erase(et1, et2 - et1);
-  return std::string{buf};
+  std::string sbuf{buf};
+  if (hasValue(sbuf)) eatValue(sbuf);
+  std::cout << "\nthe cause\n";
+  std::cout << "ss.size(): " << ss.size() << '\n';
+  std::cout << "ss: " << ss << '\n';
+  std::cout << "buf: " << sbuf << '\n';
+  std::cout << count++ << '\n';
+  std::cout << "bt1: " << bt1 << '\n';
+  std::cout << "bt2: " << bt2 << '\n';
+  ss.erase(bt1, bt2 - bt1 + 1);
+  if(!eatCorrespondingTag(sbuf, ss))
+  {
+    std::cerr << "didnt found corresponding tag\n";
+    exit(1);
+  }
+  std::cout << "\nthe cause1\n";
+  findTag(ss);
+  return sbuf;
+}
+void eatHeader(auto &ss)
+{
+  ss.erase(ss.find("<?xml version"), ss.find("?>") + 2);
 }
 void Parse(auto &ss)
 {
+  eatHeader(ss);
   tag file;
-  //file.name = findTag(ss);
-  while(ss.size() > 50)
-  {
-    tag_name.add_name(findTag(ss));
+  tag_name.add_name(findTag(ss));
     //file.child = file.getNext(findTag(ss));
-  }
   tag_name.print_all_names();
   //find tag recurse until content
   //need to unroll. will be facing the same tags but closing
@@ -159,7 +197,7 @@ void Parse(auto &ss)
   //find repeating tags
   //go to first while
 }
-static std::string static_string(1024 * 32, '\0');
+static std::string static_string(TAGS_CAPACITY, '\0');
 int main()
 {
   try{
