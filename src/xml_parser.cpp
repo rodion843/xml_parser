@@ -149,7 +149,7 @@ bool eatCorrespondingTag(const auto &name, auto &ss)
   }
 }
 auto count = 0ul;
-std::string findTag(auto &ss)
+void findTag(auto &ss)
 {
   //ignore header
   //find first tag
@@ -157,25 +157,26 @@ std::string findTag(auto &ss)
   char buf[32]{}; 
   auto bt1 = ss.find('<', 0);
   auto bt2 = ss.find('>', bt1);
-  ss.copy(buf, bt2 - bt1 - 1, bt1 + 1);
+  if(bt1 != std::string::npos && bt2 != std::string::npos)
+  {
+    ss.copy(buf, bt2 - bt1 - 1, bt1 + 1);
+  }
+  else
+  {
+    return;
+  }
   std::string sbuf{buf};
+  tag_name.add_name(sbuf);
+  
   if (hasValue(sbuf)) eatValue(sbuf);
-  std::cout << "\nthe cause\n";
-  std::cout << "ss.size(): " << ss.size() << '\n';
-  std::cout << "ss: " << ss << '\n';
-  std::cout << "buf: " << sbuf << '\n';
-  std::cout << count++ << '\n';
-  std::cout << "bt1: " << bt1 << '\n';
-  std::cout << "bt2: " << bt2 << '\n';
+
   ss.erase(bt1, bt2 - bt1 + 1);
   if(!eatCorrespondingTag(sbuf, ss))
   {
     std::cerr << "didnt found corresponding tag\n";
     exit(1);
   }
-  std::cout << "\nthe cause1\n";
   findTag(ss);
-  return sbuf;
 }
 void eatHeader(auto &ss)
 {
@@ -185,7 +186,7 @@ void Parse(auto &ss)
 {
   eatHeader(ss);
   tag file;
-  tag_name.add_name(findTag(ss));
+  findTag(ss);
     //file.child = file.getNext(findTag(ss));
   tag_name.print_all_names();
   //find tag recurse until content
