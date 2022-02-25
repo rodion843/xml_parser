@@ -6,7 +6,7 @@
 #include <set>
 #include <vector>
 //<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-static constexpr auto TAGS_CAPACITY = 32768ul * 32;
+static constexpr auto TAGS_CAPACITY = 32768ul;
 struct xml_header
 {
   std::string version;
@@ -34,17 +34,23 @@ struct tag_name
 
 struct tag
 {
-  std::string name;
+  uint32_t name_pos;
   std::set<std::string> param;  //map in fututre
   std::string value;
   tag* child;
 
+  bool setName(auto &tn, const std::string& name)
+  {
+    name_pos = tn.pos;
+    tn.add_name(name);
+    return true;
+  }
   tag* getNext(const auto &name){
     return new tag{name, {}, {}, {}};
   }
 
 };
-void PrintTag(const tag &t)
+void PrintTag(const auto &t)
 {
   std::cout << t.name << '\n';
   if (t.child)
@@ -77,6 +83,7 @@ bool eatCorrespondingTag(const auto &name, auto &ss)
     return false;
   }
 }
+tag file;
 auto count = 0ul;
 void findTag(auto &ss)
 {
@@ -95,7 +102,7 @@ void findTag(auto &ss)
     return;
   }
   std::string sbuf{buf};
-  tag_name.add_name(sbuf);
+  file.setName(tag_name, sbuf);
   
   if (hasValue(sbuf)) eatValue(sbuf);
 
@@ -114,7 +121,6 @@ void eatHeader(auto &ss)
 void Parse(auto &ss)
 {
   eatHeader(ss);
-  tag file;
   findTag(ss);
     //file.child = file.getNext(findTag(ss));
   tag_name.print_all_names();
