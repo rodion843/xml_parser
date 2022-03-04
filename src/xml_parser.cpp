@@ -14,50 +14,88 @@ struct xml_header
   bool standalone;
 };
 
+using carray = std::array<std::array<char, TAGS_CAPACITY>, TAGS_CAPACITY>;
 struct tag_name
 {
-  void add_name(const std::string& name)
+  void add(const std::string& name)
   {
-    name.copy(&tags_names[pos], name.size());
-    pos += name.size() + 1;
-    tags_names[pos++] = '\n';
+    name.copy(&names[pos].front(), name.size());
+    ++pos;
   }
-  void print_all_names()
+  void print()
   {
-    for (const auto &c : tags_names)
-      std::cout << c;
+    for (const auto &a : names)
+    {
+      if (a[0] == '\0') break;
+      for (const auto c : a)
+      {
+        if (c == '\0') break;
+        std::cout << c;
+      }
+    }
     std::cout << '\n';
   }
-  std::array<char, TAGS_CAPACITY> tags_names {0};
+  carray names {};
   std::size_t pos = 0;
-}tag_name;
+};
 
+struct tag_content
+{
+  void add(const std::string& str)
+  {
+    str.copy(&content[pos].front(), str.size());
+    ++pos;
+  }
+  const std::string& getContent(auto p)
+  {
+    if(p > pos) return ;
+    return {content[p].begin(), content[p].begin() + content[p].find('\n')};
+  }
+  void print()
+  {
+    for (const auto &a : content)
+    {
+      if (a[0] == '\0') break;
+      for (const auto c : a)
+      {
+        if (c == '\0') break;
+        std::cout << c;
+      }
+    }
+    std::cout << '\n';
+  }
+  carray content {};
+  std::size_t pos = 0;
+};
 struct tag
 {
-  uint32_t name_pos;
+  uint32_t pos;
   std::set<std::string> param;  //map in fututre
   std::string value;
   tag* child;
 
-  bool setName(auto &tn, const std::string& name)
+  bool setName(const std::string& name)
   {
-    name_pos = tn.pos;
-    tn.add_name(name);
+    pos = tn.pos;
+    tn.add(name);
+    return true;
+  }
+  bool setContent(const std::string& name)
+  {
+    pos = tc.pos;
+    tc.add(name);
     return true;
   }
   tag* getNext(const auto &name){
     return new tag{name, {}, {}, {}};
   }
-
-};
-void PrintTag(const auto &t)
-{
-  std::cout << t.name << '\n';
-  if (t.child)
+  void dump_name_content()
   {
-    PrintTag(*t.child);
+    
   }
-}
+  tag_name tn;
+  tag_content tc;
+};
 bool hasValue(auto &name)
 {
   if(name.find(' ') != std::string::npos) return true;
@@ -69,6 +107,7 @@ void eatValue(auto &name)
 }
 //between open and closed tags = content
 //how to make it linear?
+//TODO: eating next tag with same name, not necceserily correct
 bool eatCorrespondingTag(const auto &name, auto &ss)
 {
   auto et1 = ss.find("</" + name + ">");
@@ -102,11 +141,16 @@ void findTag(auto &ss)
     return;
   }
   std::string sbuf{buf};
-  file.setName(tag_name, sbuf);
+  file.setName(sbuf);
   
   if (hasValue(sbuf)) eatValue(sbuf);
 
   ss.erase(bt1, bt2 - bt1 + 1);
+  auto et1 = ss.find("</");
+  if(et1 != std::string::npos)
+  {
+    file.setContent(ss.substr(0, et1));
+  }
   if(!eatCorrespondingTag(sbuf, ss))
   {
     std::cerr << "didnt found corresponding tag\n";
@@ -123,7 +167,7 @@ void Parse(auto &ss)
   eatHeader(ss);
   findTag(ss);
     //file.child = file.getNext(findTag(ss));
-  tag_name.print_all_names();
+  file.tc.print();
   //find tag recurse until content
   //need to unroll. will be facing the same tags but closing
   //check them? skip? 
